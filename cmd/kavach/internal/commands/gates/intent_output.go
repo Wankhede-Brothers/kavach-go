@@ -13,6 +13,7 @@ import (
 
 func formatIntentDirective(intent *IntentClassification, today string) string {
 	var sb strings.Builder
+	session := enforce.GetOrCreateSession()
 
 	sb.WriteString("[NLU:INTENT_CLASSIFIED]\n")
 	sb.WriteString("type: " + intent.Type + "\n")
@@ -22,6 +23,17 @@ func formatIntentDirective(intent *IntentClassification, today string) string {
 	sb.WriteString("confidence: " + intent.Confidence + "\n")
 	sb.WriteString("date: " + today + "\n\n")
 
+	// CRITICAL: HARD BLOCK for implementation intents without research
+	if intent.ResearchReq && isImplementationIntent(intent.Type) && !session.ResearchDone {
+		sb.WriteString("[HARD_BLOCK:TABULA_RASA]\n")
+		sb.WriteString("status: TRAINING_WEIGHTS_STALE\n")
+		sb.WriteString("cutoff: 2025-01\n")
+		sb.WriteString("today: " + today + "\n")
+		sb.WriteString("BLOCKING: You MUST WebSearch BEFORE giving implementation advice\n")
+		sb.WriteString("FORBIDDEN: Suggesting versions, configs, env vars from memory\n")
+		sb.WriteString("FIRST_ACTION: WebSearch \"[topic] " + today + " documentation\"\n\n")
+	}
+
 	if len(intent.Skills) > 0 {
 		sb.WriteString("[SKILL:INJECT]\n")
 		for _, skill := range intent.Skills {
@@ -30,7 +42,6 @@ func formatIntentDirective(intent *IntentClassification, today string) string {
 		sb.WriteString("\n")
 	}
 
-	// P1 FIX: Research intent gets MANDATORY delegation directive
 	if intent.Type == "research" {
 		sb.WriteString("[AGENT:MANDATORY]\n")
 		sb.WriteString("MUST_INVOKE: Task tool with subagent_type='research-director'\n")
@@ -49,6 +60,7 @@ func formatIntentDirective(intent *IntentClassification, today string) string {
 		sb.WriteString("[TABULA_RASA:ENFORCE]\n")
 		sb.WriteString("cutoff: 2025-01\n")
 		sb.WriteString("today: " + today + "\n")
+		sb.WriteString("research_done: " + strconv.FormatBool(session.ResearchDone) + "\n")
 		sb.WriteString("action: WebSearch BEFORE implementation\n")
 		sb.WriteString("FORBIDDEN: Assuming from stale training weights\n\n")
 	}
