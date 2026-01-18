@@ -86,10 +86,18 @@ func formatIntentDirective(intent *IntentClassification, today string) string {
 	sb.WriteString("4. [VERIFY] Aegis before DONE\n")
 	sb.WriteString("5. [SYNC] kavach memory sync\n\n")
 
+	sb.WriteString("[DACE:MICRO_MODULAR]\n")
+	sb.WriteString("MAX_LINES: 100 per file (BLOCKING)\n")
+	sb.WriteString("FOLDER_DEPTH: 5-7 levels from root\n")
+	sb.WriteString("ONE_RESPONSIBILITY: 1 struct/impl per file\n")
+	sb.WriteString("SPLIT_BY: concern (handlers, middleware, models, types)\n")
+	sb.WriteString("FORBIDDEN: Monolithic files, god objects, >100 lines\n\n")
+
 	sb.WriteString("[CRITICAL:RULES]\n")
 	sb.WriteString("NO_AMNESIA: Memory Bank at ~/.local/shared/shared-ai/memory/\n")
 	sb.WriteString("TABULA_RASA: WebSearch BEFORE code\n")
 	sb.WriteString("FIX_DONT_SUPPRESS: Fix warnings, never silence them\n")
+	sb.WriteString("DACE: Max 100 lines, split by concern\n")
 	sb.WriteString("DATE: " + today + "\n")
 
 	return sb.String()
@@ -131,5 +139,6 @@ turn: ` + strconv.Itoa(session.TurnCount) + `
 CRITICAL:BINARY_FIRST - kavach BEFORE Read/Explore
 CRITICAL:TABULA_RASA - WebSearch BEFORE code (cutoff: 2025-01, today: ` + today + `)
 CRITICAL:NO_AMNESIA - Memory Bank EXISTS
-CRITICAL:FIX_DONT_SUPPRESS - Fix warnings, never silence them`
+CRITICAL:FIX_DONT_SUPPRESS - Fix warnings, never silence them
+CRITICAL:DACE - Max 100 lines per file, 5-7 folder depth`
 }

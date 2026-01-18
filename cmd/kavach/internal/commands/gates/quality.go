@@ -57,6 +57,12 @@ func runQualityGate(cmd *cobra.Command, args []string) {
 		hook.ExitSilent()
 	}
 
+	// DACE: Folder depth validation (5-7 levels max)
+	depth := getFolderDepth(filePath)
+	if depth > 7 {
+		hook.ExitBlockTOON("DACE", "folder_depth_exceeds_7:"+util.Itoa(depth))
+	}
+
 	// Go syntax validation (with fixed string/comment handling)
 	if err := validate.GoSyntax(content); err != "" {
 		hook.ExitBlockTOON("QUALITY", "ast_go:"+err)
@@ -85,4 +91,25 @@ func isInProjectDir(filePath string) bool {
 	}
 	// If relative path starts with "..", file is outside project
 	return len(rel) < 2 || rel[:2] != ".."
+}
+
+// getFolderDepth calculates the folder depth relative to project root.
+// DACE requires 5-7 levels max for micro-modular architecture.
+func getFolderDepth(filePath string) int {
+	wd := util.WorkingDir()
+	if wd == "" {
+		return 0
+	}
+	rel, err := filepath.Rel(wd, filePath)
+	if err != nil {
+		return 0
+	}
+	// Count path separators to determine depth
+	depth := 0
+	for _, c := range rel {
+		if c == filepath.Separator {
+			depth++
+		}
+	}
+	return depth
 }
