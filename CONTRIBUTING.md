@@ -14,7 +14,7 @@ Be respectful and constructive. We welcome contributors of all experience levels
 
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Go | 1.21+ | Build and test |
+| Go | 1.25+ | Build and test |
 | Git | 2.0+ | Version control |
 
 #### Rust CLI Tools (Required)
