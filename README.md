@@ -540,6 +540,105 @@ Each skill includes:
 
 ---
 
+## Contributing
+
+We welcome contributions! The CI/CD pipeline handles validation autonomously.
+
+### Quick Start
+
+```bash
+# 1. Fork and clone
+git clone https://github.com/YOUR_USERNAME/kavach-go.git
+cd kavach-go
+
+# 2. Create feature branch
+git checkout -b feature/my-feature
+
+# 3. Make changes (follow DACE: max 100 lines per file)
+
+# 4. Test locally
+go build -o kavach ./cmd/kavach
+go test ./...
+
+# 5. Submit PR
+git push origin feature/my-feature
+```
+
+### Autonomous CI/CD Pipeline
+
+When you submit a PR, GitHub Actions runs automatically:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        PR SUBMITTED                                         │
+│                            │                                                │
+│                            ▼                                                │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │                      CI PIPELINE (ci.yml)                             │  │
+│  ├──────────────────────────────────────────────────────────────────────┤  │
+│  │  ✓ Build        │  go build ./cmd/kavach                             │  │
+│  │  ✓ Test         │  go test ./... (cmd + shared)                      │  │
+│  │  ✓ Lint         │  go vet + gofmt check                              │  │
+│  │  ✓ Cross-compile│  linux/darwin/windows (amd64 + arm64)              │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                            │                                                │
+│                            ▼                                                │
+│                    All checks pass? → Merge                                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Release Process (Maintainers)
+
+Releases are fully automated:
+
+```bash
+# Tag a release
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+This triggers the release pipeline:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      RELEASE PIPELINE (release.yml)                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  1. Build binaries for all platforms:                                       │
+│     • kavach-linux-amd64                                                    │
+│     • kavach-linux-arm64                                                    │
+│     • kavach-darwin-amd64 (Intel Mac)                                       │
+│     • kavach-darwin-arm64 (Apple Silicon)                                   │
+│     • kavach-windows-amd64.exe                                              │
+│                                                                             │
+│  2. Create archives (.tar.gz / .zip)                                        │
+│  3. Generate SHA256SUMS.txt                                                 │
+│  4. Publish GitHub Release with auto-generated notes                        │
+│  5. Install scripts automatically fetch latest release                      │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### What to Contribute
+
+| Type | Location | Guide |
+|------|----------|-------|
+| **New Gate** | `cmd/kavach/internal/commands/gates/` | [CONTRIBUTING.md](docs/CONTRIBUTING.md#adding-a-new-gate) |
+| **New Skill** | `examples/skills/` | [CONTRIBUTING.md](docs/CONTRIBUTING.md#adding-a-new-skill) |
+| **New Agent** | `examples/agents/` | Follow existing agent structure |
+| **Bug Fix** | Relevant package | Include test case |
+| **Documentation** | `docs/` | Keep concise |
+
+### PR Checklist
+
+- [ ] `go test ./...` passes
+- [ ] `go fmt ./...` applied
+- [ ] Max 100 lines per file (DACE)
+- [ ] Tests added for new functionality
+- [ ] README updated if adding new command
+
+See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed guidelines.
+
+---
+
 ## License
 
 MIT License - see [LICENSE](LICENSE)
