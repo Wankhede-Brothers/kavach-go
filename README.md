@@ -24,6 +24,75 @@ Kavach (Sanskrit: कवच, "armor/shield") is a Go binary that enforces best p
 
 ---
 
+## Prerequisites
+
+Kavach enforces modern Rust CLI tools over legacy commands for better performance and UX.
+
+### Required Tools
+
+| Tool | Replaces | Purpose | Install |
+|------|----------|---------|---------|
+| **bat** | `cat`, `head`, `tail` | Syntax highlighting + paging | `cargo install bat` |
+| **eza** | `ls` | Icons + git status + tree view | `cargo install eza` |
+| **fd** | `find` | 10x faster file search | `cargo install fd-find` |
+| **rg** | `grep` | Ripgrep (fastest grep) | `cargo install ripgrep` |
+
+### Recommended Tools
+
+| Tool | Replaces | Purpose | Install |
+|------|----------|---------|---------|
+| **sd** | `sed` | Simpler regex syntax | `cargo install sd` |
+| **procs** | `ps` | Colorful process tree | `cargo install procs` |
+| **dust** | `du` | Visual disk usage | `cargo install du-dust` |
+| **btm** | `top` | Bottom (GPU + graphs) | `cargo install bottom` |
+| **delta** | `diff` | Git-aware syntax diff | `cargo install git-delta` |
+
+### Quick Install (All Tools)
+
+**Linux/macOS:**
+```bash
+# Install Rust first (if not installed)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Install all required + recommended tools
+cargo install bat eza fd-find ripgrep sd procs du-dust bottom git-delta
+```
+
+**macOS (Homebrew):**
+```bash
+brew install bat eza fd ripgrep sd procs dust bottom git-delta
+```
+
+**Windows (Scoop):**
+```powershell
+scoop install bat eza fd ripgrep sd procs dust bottom delta
+```
+
+**Windows (Chocolatey):**
+```powershell
+choco install bat eza fd ripgrep sd procs dust bottom delta
+```
+
+### Legacy Command Blocking
+
+When Kavach detects legacy commands, it blocks them with suggestions:
+
+```
+LEGACY_BLOCKED:ls:USE:eza:icons + git status + tree
+LEGACY_BLOCKED:find:USE:fd:10x faster + better syntax
+LEGACY_BLOCKED:grep:USE:rg:ripgrep (fastest grep)
+LEGACY_BLOCKED:cat:USE:bat:syntax highlighting + paging
+```
+
+### Allowed Legacy Commands
+
+These commands are allowed (no modern replacement needed):
+```
+echo, printf, cd, pwd, mkdir, rm, cp, mv, chmod, chown, touch, which, env, export, source
+```
+
+---
+
 ## Quick Install
 
 **Linux/macOS:**
