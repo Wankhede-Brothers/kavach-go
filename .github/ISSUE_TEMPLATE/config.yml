@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://wankhedebrothers.com/docs/kavach/
+    about: Check the documentation before opening an issue
+  - name: Discussions
+    url: https://github.com/Wankhede-Brothers/kavach-go/discussions
+    about: Ask questions and discuss ideas

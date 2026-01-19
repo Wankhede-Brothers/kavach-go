@@ -536,7 +536,7 @@ Each skill includes:
 | [MEMORY_BANK.md](docs/MEMORY_BANK.md) | Memory Bank structure |
 | [INSTALLATION.md](docs/INSTALLATION.md) | Installation guide |
 | [API.md](docs/API.md) | Command reference |
-| [CONTRIBUTING.md](docs/CONTRIBUTING.md) | Contribution guide |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guide |
 
 ---
 
@@ -621,8 +621,8 @@ This triggers the release pipeline:
 
 | Type | Location | Guide |
 |------|----------|-------|
-| **New Gate** | `cmd/kavach/internal/commands/gates/` | [CONTRIBUTING.md](docs/CONTRIBUTING.md#adding-a-new-gate) |
-| **New Skill** | `examples/skills/` | [CONTRIBUTING.md](docs/CONTRIBUTING.md#adding-a-new-skill) |
+| **New Gate** | `cmd/kavach/internal/commands/gates/` | [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-new-gate) |
+| **New Skill** | `examples/skills/` | [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-new-skill) |
 | **New Agent** | `examples/agents/` | Follow existing agent structure |
 | **Bug Fix** | Relevant package | Include test case |
 | **Documentation** | `docs/` | Keep concise |
@@ -635,7 +635,7 @@ This triggers the release pipeline:
 - [ ] Tests added for new functionality
 - [ ] README updated if adding new command
 
-See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
