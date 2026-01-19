@@ -55,6 +55,130 @@ cp kavach ~/.local/bin/
 
 ---
 
+## Setup Guide
+
+After installation, follow these steps to configure Kavach with your AI coding assistant.
+
+### Step 1: Verify Binary Location
+
+The installer places the binary at:
+
+| Platform | Binary Path | Memory Bank Path |
+|----------|-------------|------------------|
+| **Linux** | `~/.local/bin/kavach` | `~/.local/share/shared-ai/memory/` |
+| **macOS** | `~/.local/bin/kavach` | `~/Library/Application Support/shared-ai/memory/` |
+| **Windows** | `%USERPROFILE%\.local\bin\kavach.exe` | `%APPDATA%\shared-ai\memory\` |
+
+Verify installation:
+```bash
+kavach status
+```
+
+### Step 2: Configure Hooks (Claude Code)
+
+Create or update `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {"hooks": [{"type": "command", "command": "kavach session init"}]}
+    ],
+    "UserPromptSubmit": [
+      {"hooks": [{"type": "command", "command": "kavach session init"}]}
+    ],
+    "PreToolUse": [
+      {"matcher": "Task", "hooks": [{"type": "command", "command": "kavach gates ceo --hook"}]},
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "kavach gates bash --hook"}]},
+      {"matcher": "Read", "hooks": [{"type": "command", "command": "kavach gates read --hook"}]},
+      {"matcher": "Write", "hooks": [{"type": "command", "command": "kavach gates enforcer --hook"}]},
+      {"matcher": "Edit", "hooks": [{"type": "command", "command": "kavach gates enforcer --hook"}]}
+    ],
+    "Stop": [
+      {"hooks": [{"type": "command", "command": "kavach session end"}]}
+    ]
+  }
+}
+```
+
+**Minimal configuration** (TABULA_RASA enforcement only):
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {"hooks": [{"type": "command", "command": "kavach session init"}]}
+    ],
+    "PreToolUse": [
+      {"matcher": "Write", "hooks": [{"type": "command", "command": "kavach gates enforcer --hook"}]},
+      {"matcher": "Edit", "hooks": [{"type": "command", "command": "kavach gates enforcer --hook"}]}
+    ]
+  }
+}
+```
+
+### Step 3: Add CLAUDE.md (Optional)
+
+Copy the example CLAUDE.md to your project or global config:
+
+```bash
+# Global (all projects)
+cp configs/linux/CLAUDE.md ~/.claude/CLAUDE.md
+
+# Project-specific
+cp configs/linux/CLAUDE.md /path/to/your/project/CLAUDE.md
+```
+
+The CLAUDE.md file contains enforcement rules that Claude reads at session start:
+- TABULA_RASA: Forces WebSearch before code
+- Memory Bank integration
+- Agent hierarchy rules
+
+### Step 4: Configure OpenCode (Alternative)
+
+If using OpenCode instead of Claude Code:
+
+```bash
+# Linux
+cp configs/linux/AGENTS.md ~/.config/opencode/AGENTS.md
+
+# macOS
+cp configs/darwin/AGENTS.md ~/Library/Application\ Support/opencode/AGENTS.md
+
+# Windows
+Copy-Item configs\windows\AGENTS.md "$env:APPDATA\opencode\AGENTS.md"
+```
+
+### Step 5: Verify Setup
+
+```bash
+# Check system health
+kavach status
+
+# Test session initialization
+kavach session init
+
+# View Memory Bank
+kavach memory bank
+
+# List available agents
+kavach agents
+
+# List available skills
+kavach skills
+```
+
+Expected `kavach status` output:
+```
+[STATUS]
+binary: kavach v1.x.x
+date: 2026-01-19
+project: your-project
+memory_bank: OK
+hooks: configured
+```
+
+---
+
 ## Features
 
 | Problem | Kavach Solution |
