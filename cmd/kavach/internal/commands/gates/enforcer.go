@@ -44,6 +44,9 @@ func runEnforcerGate(cmd *cobra.Command, args []string) {
 	switch input.ToolName {
 	case "Task":
 		handleTask(input, session)
+	case "TaskCreate", "TaskUpdate", "TaskGet", "TaskList", "TaskOutput":
+		// Route to task gate for persistent task system (Claude Code 2.1.19+)
+		handleTaskManagement(input, session)
 	case "WebSearch":
 		session.MarkResearchDone()
 		hook.ExitSilent()
@@ -154,6 +157,46 @@ func handleRead(input *hook.Input) {
 	path := input.GetString("file_path")
 	if patterns.IsSensitive(path) {
 		hook.ExitBlockTOON("ENFORCER", "Read:sensitive_file")
+	}
+	hook.ExitSilent()
+}
+
+// handleTaskManagement routes Claude Code 2.1.19+ task management tools.
+// These tools interact with the persistent task system in ~/.claude/tasks/
+func handleTaskManagement(input *hook.Input, session *enforce.SessionState) {
+	switch input.ToolName {
+	case "TaskCreate":
+		subject := input.GetString("subject")
+		if subject == "" {
+			hook.ExitBlockTOON("TASK_GATE", "TaskCreate:missing_subject")
+		}
+		description := input.GetString("description")
+		if description == "" {
+			hook.ExitBlockTOON("TASK_GATE", "TaskCreate:missing_description")
+		}
+		// Track task creation
+		session.TasksCreated++
+		session.Save()
+	case "TaskUpdate":
+		taskID := input.GetString("taskId")
+		if taskID == "" {
+			hook.ExitBlockTOON("TASK_GATE", "TaskUpdate:missing_taskId")
+		}
+		status := input.GetString("status")
+		if status == "completed" {
+			session.TasksCompleted++
+			session.Save()
+		}
+	case "TaskGet":
+		taskID := input.GetString("taskId")
+		if taskID == "" {
+			hook.ExitBlockTOON("TASK_GATE", "TaskGet:missing_taskId")
+		}
+	case "TaskOutput":
+		taskID := input.GetString("task_id")
+		if taskID == "" {
+			hook.ExitBlockTOON("TASK_GATE", "TaskOutput:missing_task_id")
+		}
 	}
 	hook.ExitSilent()
 }
