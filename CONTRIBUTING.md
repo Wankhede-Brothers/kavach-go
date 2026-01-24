@@ -10,10 +10,36 @@ Be respectful and constructive. We welcome contributors of all experience levels
 
 ### Prerequisites
 
+#### Build Requirements
+
 | Tool | Version | Purpose |
 |------|---------|---------|
-| Go | 1.21+ | Build and test |
+| Go | 1.25+ | Build and test |
 | Git | 2.0+ | Version control |
+
+#### Rust CLI Tools (Required)
+
+Kavach enforces modern Rust CLI tools. Install before contributing:
+
+```bash
+# Install all required tools
+cargo install bat eza fd-find ripgrep
+
+# Or with Homebrew (macOS)
+brew install bat eza fd ripgrep
+
+# Or with Scoop (Windows)
+scoop install bat eza fd ripgrep
+```
+
+| Tool | Replaces | Why Required |
+|------|----------|--------------|
+| `bat` | `cat` | Syntax highlighting in tests |
+| `eza` | `ls` | Directory listings with icons |
+| `fd` | `find` | Fast file discovery |
+| `rg` | `grep` | Fast pattern searching |
+
+**Note**: Running tests or development commands with legacy tools (`cat`, `ls`, `find`, `grep`) will be blocked by Kavach's bash gate.
 
 ### Development Setup
 

@@ -42,6 +42,19 @@ func (h *HookInput) GetString(key string) string {
 	return ""
 }
 
+// GetBool extracts a boolean value from tool input by key.
+func (h *HookInput) GetBool(key string) bool {
+	if h.ToolInput == nil {
+		return false
+	}
+	if val, ok := h.ToolInput[key]; ok {
+		if b, ok := val.(bool); ok {
+			return b
+		}
+	}
+	return false
+}
+
 // HookResponse represents the hook's decision output.
 // P2 FIX: Added ToolInput for PreToolUse input modification (Claude Code v2.0.10+).
 type HookResponse struct {

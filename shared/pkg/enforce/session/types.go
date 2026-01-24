@@ -34,4 +34,10 @@ type SessionState struct {
 	CurrentTask   string
 	TaskStatus    string
 	FilesModified []string
+
+	// Task management (Claude Code 2.1.19+)
+	SessionID      string // Session identifier for multi-session coordination
+	TasksCreated   int    // Count of tasks created this session
+	TasksCompleted int    // Count of tasks completed this session
+	TaskListID     string // CLAUDE_CODE_TASK_LIST_ID for shared task lists
 }
