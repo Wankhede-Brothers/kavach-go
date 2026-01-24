@@ -4,6 +4,34 @@
 
 Part of the **Brahmastra Stack**: Kavach CLI + Sutra Protocol (SP/1.0) + TOON Format + DACE
 
+[![Claude Code 2.1.19](https://img.shields.io/badge/Claude%20Code-2.1.19-blue)](https://github.com/anthropics/claude-code)
+[![Go 1.25+](https://img.shields.io/badge/Go-1.25+-00ADD8)](https://go.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+---
+
+## What's New in v0.2.0
+
+**Full support for Claude Code 2.1.19's persistent task system:**
+
+- **Task Gates**: Validation for `TaskCreate`, `TaskUpdate`, `TaskGet`, `TaskList`, `TaskOutput`
+- **Health Monitoring**: Runtime bug detection for known Claude Code issues
+- **Zombie Detection**: Catches orphaned background tasks
+- **Multi-Session Coordination**: Via `CLAUDE_CODE_TASK_LIST_ID`
+
+```bash
+# Check task health
+kavach orch task-health
+
+# Output
+[TASK_HEALTH]
+active_tasks: 3
+completed_tasks: 12
+zombie_candidates: 0
+issues_found: 0
+[STATUS] OK - No issues detected.
+```
+
 ---
 
 ## What is Kavach?
@@ -258,6 +286,9 @@ hooks: configured
 | Context pollution across projects | **Project Isolation**: Scope by active directory |
 | Concurrent write conflicts | **File Locking**: Prevents race conditions |
 | No telemetry/observability | **Event Bus**: Session, write, agent events |
+| Task system bugs (Claude Code 2.1.19) | **Task Health**: Zombie detection, stale counts |
+| Background task orphaning | **Zombie Detection**: 30-min timeout monitoring |
+| Headless mode limitations | **Headless Validation**: Task tool availability |
 
 ---
 
@@ -285,30 +316,50 @@ kavach session end               # Save session state
 # Gates (Hook Mode)
 kavach gates enforcer --hook     # Full pipeline (TABULA_RASA + research gate)
 kavach gates ceo --hook          # Task orchestration validation
+kavach gates task --hook         # Task management validation (2.1.19+)
 kavach gates bash --hook         # Command sanitization
 kavach gates read --hook         # Sensitive file blocking
+
+# Task Health (Claude Code 2.1.19+)
+kavach orch task-health          # Run full health check
+kavach orch task-health --cleanup           # Clean old completed tasks
+kavach orch task-health --cleanup --days 14 # Custom retention period
 ```
 
 ---
 
 ## Hook Configuration
 
-**Claude Code** (`~/.claude/settings.json`):
+**Claude Code 2.1.19+** (`~/.claude/settings.json`):
 ```json
 {
+  "env": {
+    "CLAUDE_CODE_ENABLE_TASKS": "1",
+    "CLAUDE_CODE_TASK_LIST_ID": "your-project-name"
+  },
   "hooks": {
     "SessionStart": [
       {"hooks": [{"type": "command", "command": "kavach session init"}]}
     ],
     "UserPromptSubmit": [
-      {"hooks": [{"type": "command", "command": "kavach session init"}]}
+      {"hooks": [{"type": "command", "command": "kavach gates intent --hook"}]}
     ],
     "PreToolUse": [
       {"matcher": "Task", "hooks": [{"type": "command", "command": "kavach gates ceo --hook"}]},
+      {"matcher": "TaskCreate", "hooks": [{"type": "command", "command": "kavach gates task --hook"}]},
+      {"matcher": "TaskUpdate", "hooks": [{"type": "command", "command": "kavach gates task --hook"}]},
+      {"matcher": "TaskGet", "hooks": [{"type": "command", "command": "kavach gates task --hook"}]},
+      {"matcher": "TaskList", "hooks": [{"type": "command", "command": "kavach gates task --hook"}]},
+      {"matcher": "TaskOutput", "hooks": [{"type": "command", "command": "kavach gates task --hook"}]},
       {"matcher": "Bash", "hooks": [{"type": "command", "command": "kavach gates bash --hook"}]},
       {"matcher": "Read", "hooks": [{"type": "command", "command": "kavach gates read --hook"}]},
       {"matcher": "Write", "hooks": [{"type": "command", "command": "kavach gates enforcer --hook"}]},
       {"matcher": "Edit", "hooks": [{"type": "command", "command": "kavach gates enforcer --hook"}]}
+    ],
+    "PostToolUse": [
+      {"matcher": "TaskCreate", "hooks": [{"type": "command", "command": "kavach memory sync --hook"}]},
+      {"matcher": "TaskUpdate", "hooks": [{"type": "command", "command": "kavach memory sync --hook"}]},
+      {"matcher": "TaskOutput", "hooks": [{"type": "command", "command": "kavach gates task --hook"}]}
     ],
     "Stop": [
       {"hooks": [{"type": "command", "command": "kavach session end"}]}
@@ -338,8 +389,10 @@ kavach gates read --hook         # Sensitive file blocking
 │  │  gates/          memory/         session/        agents/   skills/  │   │
 │  │  ├─ enforcer     ├─ bank         ├─ init         ├─ list   ├─ list │   │
 │  │  ├─ ceo          ├─ write        ├─ validate     ├─ get    ├─ get  │   │
-│  │  ├─ bash         ├─ kanban       └─ end          └─ inject └─ inject│   │
-│  │  └─ read         └─ stm                                              │   │
+│  │  ├─ task         ├─ kanban       └─ end          └─ inject └─ inject│   │
+│  │  ├─ bash         ├─ sync                                             │   │
+│  │  └─ read         └─ stm          orch/                               │   │
+│  │                                  └─ task-health                      │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                            │                                                │
 │         ┌──────────────────┼──────────────────┐                            │
@@ -363,8 +416,13 @@ kavach/
 │       ├── gates/              # Enforcement gates
 │       │   ├── enforcer.go     # Full pipeline (TABULA_RASA)
 │       │   ├── ceo.go          # Task orchestration
+│       │   ├── task.go         # Task management (2.1.19+)
+│       │   ├── task_health.go  # Health monitoring
 │       │   ├── bash.go         # Command sanitization
 │       │   └── read.go         # File access control
+│       ├── orch/               # Orchestration
+│       │   ├── aegis.go        # Aegis verification
+│       │   └── task_health.go  # Health check command
 │       ├── memory/             # Memory operations
 │       │   ├── bank.go         # Project-scoped queries
 │       │   ├── write.go        # With file locking + events
@@ -470,6 +528,36 @@ Backlog → In-Progress → Testing → Verified → Done
                       lint/bugs    algorithm
                       warnings     dead code
                       unit tests   suppressed
+```
+
+### Task Health Monitoring (Claude Code 2.1.19+)
+
+Runtime bug detection for known Claude Code issues:
+
+| Detection | GitHub Issue | What It Catches |
+|-----------|--------------|-----------------|
+| **Stale Task Count** | #19894 | UI shows wrong task count |
+| **Zombie Tasks** | #17542 | Background tasks orphaned >30min |
+| **Headless Mode** | #20463 | Task tools unavailable in pipe mode |
+| **Silent Completion** | #20525 | Background tasks complete without notification |
+
+```bash
+# Run health check
+kavach orch task-health
+
+# Example output with issues
+[TASK_HEALTH]
+active_tasks: 2
+zombie_candidates: 1
+issues_found: 1
+
+[ISSUES]
+  [1]
+    type: ZOMBIE_TASK
+    severity: warning
+    desc: Task 'Build API' in_progress for 45m without updates.
+    github: anthropics/claude-code#17542
+    fix: Check with TaskOutput(task_id='abc123'). If unresponsive, use TaskStop.
 ```
 
 ---

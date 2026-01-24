@@ -39,6 +39,8 @@ TOOL REQUEST (stdin JSON)
       │
       ├── Task Tool ──► CEO Gate (validate agent hierarchy)
       │
+      ├── TaskCreate/Update/Get/List/Output ──► Task Gate (2.1.19+)
+      │
       ├── Bash Tool ──► Bash Gate (command sanitization)
       │
       ├── Read Tool ──► Read Gate (sensitive file blocking)
@@ -114,6 +116,16 @@ DATE_INJECTION: 2026-01-16
 echo '{"tool_name":"Task","tool_input":{"subagent_type":"backend-engineer"}}' | kavach gates ceo --hook
 ```
 
+### PreToolUse:TaskCreate (2.1.19+)
+```bash
+echo '{"tool_name":"TaskCreate","tool_input":{"subject":"Build API","description":"Implement REST endpoints"}}' | kavach gates task --hook
+```
+
+### PreToolUse:TaskUpdate (2.1.19+)
+```bash
+echo '{"tool_name":"TaskUpdate","tool_input":{"taskId":"abc123","status":"completed"}}' | kavach gates task --hook
+```
+
 ### PreToolUse:Bash
 ```bash
 echo '{"tool_name":"Bash","tool_input":{"command":"ls -la"}}' | kavach gates bash --hook
@@ -143,103 +155,51 @@ kavach session compact
 
 ## settings.json Configuration
 
-### Full Configuration
+### Full Configuration (Claude Code 2.1.19+)
 
 Location: `~/.claude/settings.json`
 
 ```json
 {
+  "env": {
+    "CLAUDE_CODE_ENABLE_TASKS": "1",
+    "CLAUDE_CODE_TASK_LIST_ID": "your-project"
+  },
   "hooks": {
     "SessionStart": [
       {
         "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "kavach session init"
-          }
-        ]
+        "hooks": [{"type": "command", "command": "kavach session init"}]
       }
     ],
     "UserPromptSubmit": [
       {
         "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "kavach session init"
-          }
-        ]
+        "hooks": [{"type": "command", "command": "kavach gates intent --hook"}]
       }
     ],
     "PreToolUse": [
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "kavach gates ceo --hook"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "kavach gates bash --hook"
-          }
-        ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "kavach gates read --hook"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "kavach gates enforcer --hook"
-          }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "kavach gates enforcer --hook"
-          }
-        ]
-      }
+      {"matcher": "Task", "hooks": [{"type": "command", "command": "kavach gates ceo --hook"}]},
+      {"matcher": "TaskCreate", "hooks": [{"type": "command", "command": "kavach gates task --hook"}]},
+      {"matcher": "TaskUpdate", "hooks": [{"type": "command", "command": "kavach gates task --hook"}]},
+      {"matcher": "TaskGet", "hooks": [{"type": "command", "command": "kavach gates task --hook"}]},
+      {"matcher": "TaskList", "hooks": [{"type": "command", "command": "kavach gates task --hook"}]},
+      {"matcher": "TaskOutput", "hooks": [{"type": "command", "command": "kavach gates task --hook"}]},
+      {"matcher": "Bash", "hooks": [{"type": "command", "command": "kavach gates bash --hook"}]},
+      {"matcher": "Read", "hooks": [{"type": "command", "command": "kavach gates read --hook"}]},
+      {"matcher": "Write", "hooks": [{"type": "command", "command": "kavach gates enforcer --hook"}]},
+      {"matcher": "Edit", "hooks": [{"type": "command", "command": "kavach gates enforcer --hook"}]}
+    ],
+    "PostToolUse": [
+      {"matcher": "TaskCreate", "hooks": [{"type": "command", "command": "kavach memory sync --hook"}]},
+      {"matcher": "TaskUpdate", "hooks": [{"type": "command", "command": "kavach memory sync --hook"}]},
+      {"matcher": "TaskOutput", "hooks": [{"type": "command", "command": "kavach gates task --hook"}]}
     ],
     "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "kavach session end"
-          }
-        ]
-      }
+      {"matcher": "", "hooks": [{"type": "command", "command": "kavach session end"}]}
     ],
     "PreCompact": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "kavach session compact"
-          }
-        ]
-      }
+      {"matcher": "", "hooks": [{"type": "command", "command": "kavach session compact"}]}
     ]
   }
 }
@@ -277,6 +237,7 @@ Location: `~/.claude/settings.json`
 |------|---------|---------|---------|
 | `enforcer` | Write, Edit | Full pipeline (TABULA_RASA + research) | `pkg/agentic` |
 | `ceo` | Task | Validate agent hierarchy | `pkg/patterns` |
+| `task` | TaskCreate, TaskUpdate, TaskGet, TaskList, TaskOutput | Task management (2.1.19+) | `gates/task` |
 | `bash` | Bash | Command sanitization | `pkg/enforce` |
 | `read` | Read | Sensitive file blocking | `pkg/patterns` |
 
@@ -304,6 +265,28 @@ Location: `~/.claude/settings.json`
 1. **Sensitive Files**: Blocks `/etc/passwd`, credentials, keys
 2. **Pattern Blocking**: Configurable blocked patterns
 3. **Access Control**: Project-scoped file access
+
+### Task Gate Checks (Claude Code 2.1.19+)
+
+1. **Parameter Validation**: Required fields (subject, taskId)
+2. **Status Validation**: Valid status transitions
+3. **Health Tracking**: Records task creation/completion
+4. **Zombie Detection**: Monitors stale in_progress tasks
+5. **Multi-Session**: Coordinates via `CLAUDE_CODE_TASK_LIST_ID`
+
+**Detected Issues:**
+
+| Issue Type | GitHub | Detection |
+|------------|--------|-----------|
+| `STALE_TASK_COUNT` | #19894 | UI count vs actual mismatch |
+| `ZOMBIE_TASK` | #17542 | in_progress >30min without update |
+| `HEADLESS_MODE_TASK_TOOLS` | #20463 | Task tools unavailable in pipe mode |
+| `SILENT_COMPLETION` | #20525 | Background task completed without notification |
+
+**Health Check:**
+```bash
+kavach orch task-health
+```
 
 ---
 
