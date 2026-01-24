@@ -7,4 +7,5 @@ import "github.com/spf13/cobra"
 func Register(orchCmd *cobra.Command) {
 	orchCmd.AddCommand(aegisCmd)
 	orchCmd.AddCommand(verifyCmd)
+	orchCmd.AddCommand(taskHealthCmd) // Claude Code 2.1.19+: Task health monitoring
 }

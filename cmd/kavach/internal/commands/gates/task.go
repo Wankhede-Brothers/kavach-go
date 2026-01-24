@@ -74,6 +74,28 @@ func handleTaskCreate(input *hook.Input, session *enforce.SessionState) {
 	taskListID := getTaskListID()
 	today := time.Now().Format("2006-01-02")
 
+	// Check if this is a background task
+	isBackground := input.GetBool("run_in_background")
+
+	// Track in health monitoring system
+	health := GetTaskHealth()
+	taskID := generateTaskID(subject)
+	health.TrackTaskCreation(taskID, description, session.SessionID, isBackground)
+
+	// Check for headless mode issues
+	if issue := health.DetectHeadlessMode(); issue != nil {
+		// Don't block, just inject warning
+		metadata := map[string]string{
+			"task_list_id":   taskListID,
+			"created_date":   today,
+			"session_id":     session.SessionID,
+			"health_warning": issue.Description,
+		}
+		session.TasksCreated++
+		session.Save()
+		hook.ExitModifyTOON("TASK_CREATE", metadata)
+	}
+
 	metadata := map[string]string{
 		"task_list_id": taskListID,
 		"created_date": today,
@@ -102,7 +124,13 @@ func handleTaskUpdate(input *hook.Input, session *enforce.SessionState) {
 		hook.ExitBlockTOON("TASK_GATE", "TaskUpdate:invalid_status:"+status)
 	}
 
-	// Track completion
+	// Track in health monitoring system
+	health := GetTaskHealth()
+	if status != "" {
+		health.TrackTaskUpdate(taskID, status)
+	}
+
+	// Track completion in session
 	if status == "completed" {
 		session.TasksCompleted++
 		session.Save()
@@ -146,6 +174,20 @@ func handleTaskOutput(input *hook.Input, session *enforce.SessionState) {
 		hook.ExitBlockTOON("TASK_GATE", "TaskOutput:missing_task_id")
 	}
 
+	// Track in health monitoring for zombie detection
+	health := GetTaskHealth()
+
+	// Check if zombie recovered
+	if issue := health.RecordTaskOutput(taskID, ""); issue != nil {
+		// Zombie recovered - inject info
+		metadata := map[string]string{
+			"task_id":      taskID,
+			"health_event": issue.IssueType,
+			"health_desc":  issue.Description,
+		}
+		hook.ExitModifyTOON("TASK_OUTPUT", metadata)
+	}
+
 	// Allow read operations
 	hook.ExitSilent()
 }
@@ -185,4 +227,15 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+// generateTaskID creates a unique task ID from subject and timestamp
+func generateTaskID(subject string) string {
+	// Use first 8 chars of subject + timestamp hash
+	prefix := sanitizeID(subject)
+	if len(prefix) > 8 {
+		prefix = prefix[:8]
+	}
+	timestamp := time.Now().UnixNano()
+	return prefix + "_" + string(rune(timestamp%1000000))
 }
