@@ -4,10 +4,9 @@
 package memory
 
 import (
-	"bufio"
-	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/claude/shared/pkg/hook"
@@ -23,9 +22,9 @@ var syncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "Sync task completion to Memory Bank",
 	Long: `[SYNC]
-desc: Sync task completion from TodoWrite to Memory Bank
-hook: PostToolUse:TodoWrite
-purpose: Keep kanban, scratchpad, roadmap in sync with task progress
+desc: Sync tool events to Memory Bank (STM session log + scratchpad)
+hook: PostToolUse:TaskCreate|TaskUpdate|Write|Edit|Bash|Task
+purpose: Keep scratchpad and session log in sync with task progress
 
 [TRIGGERS]
 - PostToolUse:TodoWrite - When todo list is updated
@@ -73,54 +72,106 @@ func runSyncCmd(cmd *cobra.Command, args []string) {
 }
 
 func runSyncHookMode(project, today string) {
-	// Read from stdin (PostToolUse hook format)
 	input := hook.MustReadHookInput()
+	toolName := input.ToolName
 
-	// Parse tool result
-	toolResult := input.GetString("tool_result")
-	if toolResult == "" {
-		hook.ExitSilent()
-		return
+	switch toolName {
+	case "TaskCreate":
+		syncTaskCreate(input, project, today)
+	case "TaskUpdate":
+		syncTaskUpdate(input, project, today)
+	case "Write", "Edit":
+		syncFileChange(input, project, today)
+	case "Bash":
+		syncBashResult(input, project, today)
+	case "Task":
+		syncAgentResult(input, project, today)
+	default:
+		// Unknown tool — silent pass
 	}
-
-	// Try to parse as TodoWrite result
-	var result struct {
-		Todos []TodoItem `json:"todos"`
-	}
-
-	// The tool_result might be a string or structured
-	if err := json.Unmarshal([]byte(toolResult), &result); err != nil {
-		// Try reading raw JSON from stdin
-		scanner := bufio.NewScanner(os.Stdin)
-		var rawInput string
-		for scanner.Scan() {
-			rawInput += scanner.Text()
-		}
-		if rawInput != "" {
-			json.Unmarshal([]byte(rawInput), &result)
-		}
-	}
-
-	if len(result.Todos) == 0 {
-		hook.ExitSilent()
-		return
-	}
-
-	// Sync todos to Memory Bank
-	completed, inProgress, pending := categorizeTodos(result.Todos)
-
-	// Update scratchpad with current task
-	updateScratchpad(project, today, inProgress, completed)
-
-	// Update kanban
-	updateKanban(project, today, completed, inProgress, pending)
-
-	// Output sync result
-	fmt.Println("[SYNC:COMPLETE]")
-	fmt.Printf("project: %s\n", project)
-	fmt.Printf("completed: %d\n", len(completed))
-	fmt.Printf("in_progress: %d\n", len(inProgress))
-	fmt.Printf("pending: %d\n", len(pending))
 
 	hook.ExitSilent()
+}
+
+func syncTaskCreate(input *hook.Input, project, today string) {
+	subject := input.GetString("subject")
+	description := input.GetString("description")
+	if subject == "" {
+		return
+	}
+	appendToSTMLog(project, today, "task_created", subject, description)
+}
+
+func syncTaskUpdate(input *hook.Input, project, today string) {
+	taskID := input.GetString("taskId")
+	status := input.GetString("status")
+	if taskID == "" || status == "" {
+		return
+	}
+	subject := input.GetString("subject")
+	appendToSTMLog(project, today, "task_"+status, subject, taskID)
+
+	// Update scratchpad on completion
+	if status == "completed" && subject != "" {
+		updateScratchpadManual(project, today, subject, "completed")
+	}
+	if status == "in_progress" && subject != "" {
+		updateScratchpadManual(project, today, subject, "in_progress")
+	}
+}
+
+func syncFileChange(input *hook.Input, project, today string) {
+	filePath := input.GetString("file_path")
+	if filePath == "" {
+		return
+	}
+	appendToSTMLog(project, today, "file_"+input.ToolName, filePath, "")
+}
+
+func syncBashResult(input *hook.Input, project, today string) {
+	command := input.GetString("command")
+	if command == "" {
+		return
+	}
+	// Only log significant commands (builds, tests, deploys)
+	for _, sig := range []string{"build", "test", "deploy", "cargo", "go ", "bun ", "npm ", "git commit"} {
+		if containsStr(command, sig) {
+			appendToSTMLog(project, today, "bash_"+sig, command, "")
+			return
+		}
+	}
+}
+
+func syncAgentResult(input *hook.Input, project, today string) {
+	desc := input.GetString("description")
+	agentType := input.GetString("subagent_type")
+	if desc == "" {
+		return
+	}
+	appendToSTMLog(project, today, "agent_"+agentType, desc, "")
+}
+
+func containsStr(s, sub string) bool {
+	return len(s) >= len(sub) && strings.Contains(strings.ToLower(s), sub)
+}
+
+func appendToSTMLog(project, today, eventType, subject, detail string) {
+	stmDir, err := util.EnsureScratchpadDir(project)
+	if err != nil {
+		return
+	}
+	logPath := stmDir + "/session_log.toon"
+
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	ts := time.Now().Format("15:04:05")
+	line := fmt.Sprintf("[%s] %s: %s", ts, eventType, sanitizeTitle(subject))
+	if detail != "" {
+		line += " | " + sanitizeTitle(detail)
+	}
+	fmt.Fprintln(f, line)
 }

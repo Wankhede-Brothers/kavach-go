@@ -69,11 +69,13 @@ func runIntentGate(cmd *cobra.Command, args []string) {
 	// 4. AGI NLU: Classify intent using dynamic config
 	intent := classifyIntentFromConfig(prompt)
 	if intent != nil {
-		// P1 FIX: Reset research state for implementation intents
-		// This makes research TASK-SCOPED, not session-scoped
-		if isImplementationIntent(intent.Type) && intent.ResearchReq {
-			session.ResetTaskResearch()
+		// Only reset research for genuinely NEW tasks, not follow-up prompts.
+		// Detect new task: intent has research requirement AND session has no current task match.
+		if isImplementationIntent(intent.Type) && intent.ResearchReq && !session.ResearchDone {
+			// Research not done yet — keep it false (already false)
 		}
+		// Do NOT call ResetTaskResearch() here — it causes infinite research loops
+		// for follow-up prompts like "now write the file" after research is done.
 		contextBlocks = append(contextBlocks, formatIntentDirective(intent, today))
 	}
 
