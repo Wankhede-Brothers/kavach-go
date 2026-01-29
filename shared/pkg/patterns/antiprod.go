@@ -11,10 +11,10 @@ import (
 type AntiProdLevel int
 
 const (
-	P0MockData  AntiProdLevel = iota // Fake data, placeholders
-	P1ProdLeak                       // console.log, TODO, localhost, env
-	P2ErrorBlind                     // Empty catch, non-null !, unwrap
-	P3TypeLoose                      // as any, ts-ignore, eslint-disable
+	P0MockData   AntiProdLevel = iota // Fake data, placeholders
+	P1ProdLeak                        // console.log, TODO, localhost, env
+	P2ErrorBlind                      // Empty catch, non-null !, unwrap
+	P3TypeLoose                       // as any, ts-ignore, eslint-disable
 )
 
 // AntiProdResult holds the detection result.
@@ -44,10 +44,10 @@ var (
 
 // P3: Type looseness patterns
 var (
-	reAsAny       = regexp.MustCompile(`\bas\s+any\b`)
-	reTsIgnore    = regexp.MustCompile(`@ts-ignore|@ts-expect-error`)
-	reEslintDis   = regexp.MustCompile(`eslint-disable(?:-next-line)?`)
-	reTsNoCheck   = regexp.MustCompile(`@ts-nocheck`)
+	reAsAny     = regexp.MustCompile(`\bas\s+any\b`)
+	reTsIgnore  = regexp.MustCompile(`@ts-ignore|@ts-expect-error`)
+	reEslintDis = regexp.MustCompile(`eslint-disable(?:-next-line)?`)
+	reTsNoCheck = regexp.MustCompile(`@ts-nocheck`)
 )
 
 // DetectAntiProd runs hierarchical P0→P3 checks.

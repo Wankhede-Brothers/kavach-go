@@ -302,7 +302,7 @@ func NewPermissionAllowWithInput(reason string, updatedInput map[string]interfac
 func NewSessionEndContext(context string) *HookResponse {
 	return &HookResponse{
 		HookSpecificOutput: &HookSpecificOutput{
-			HookEventName:    "SessionEnd",
+			HookEventName:     "SessionEnd",
 			AdditionalContext: context,
 		},
 	}
@@ -312,7 +312,7 @@ func NewSessionEndContext(context string) *HookResponse {
 func NewSubagentStartContext(context string) *HookResponse {
 	return &HookResponse{
 		HookSpecificOutput: &HookSpecificOutput{
-			HookEventName:    "SubagentStart",
+			HookEventName:     "SubagentStart",
 			AdditionalContext: context,
 		},
 	}
@@ -322,7 +322,7 @@ func NewSubagentStartContext(context string) *HookResponse {
 func NewSubagentStopContext(context string) *HookResponse {
 	return &HookResponse{
 		HookSpecificOutput: &HookSpecificOutput{
-			HookEventName:    "SubagentStop",
+			HookEventName:     "SubagentStop",
 			AdditionalContext: context,
 		},
 	}
@@ -334,7 +334,7 @@ func NewSubagentStopContext(context string) *HookResponse {
 func NewSetupContext(context string) *HookResponse {
 	return &HookResponse{
 		HookSpecificOutput: &HookSpecificOutput{
-			HookEventName:    "Setup",
+			HookEventName:     "Setup",
 			AdditionalContext: context,
 		},
 	}

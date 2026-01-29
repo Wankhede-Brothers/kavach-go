@@ -47,10 +47,10 @@ var stubPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)not\s+implemented`),
 	regexp.MustCompile(`(?i)placeholder`),
 	regexp.MustCompile(`(?i)stub`),
-	regexp.MustCompile(`unimplemented!`),     // Rust
-	regexp.MustCompile(`todo!`),               // Rust
-	regexp.MustCompile(`pass\s*$`),            // Python
-	regexp.MustCompile(`raise\s+NotImplementedError`), // Python
+	regexp.MustCompile(`unimplemented!`),                         // Rust
+	regexp.MustCompile(`todo!`),                                  // Rust
+	regexp.MustCompile(`pass\s*$`),                               // Python
+	regexp.MustCompile(`raise\s+NotImplementedError`),            // Python
 	regexp.MustCompile(`throw\s+new\s+Error.*not\s+implemented`), // JS/TS
 }
 

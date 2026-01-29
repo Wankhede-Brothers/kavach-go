@@ -28,7 +28,7 @@ const (
 type Event struct {
 	Type      EventType   `json:"type"`
 	Source    string      `json:"source"`
-	SessionID string     `json:"session_id,omitempty"`
+	SessionID string      `json:"session_id,omitempty"`
 	Timestamp time.Time   `json:"timestamp"`
 	Payload   interface{} `json:"payload"`
 }

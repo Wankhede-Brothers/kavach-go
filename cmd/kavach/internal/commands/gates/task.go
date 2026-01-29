@@ -112,8 +112,8 @@ func handleTaskCreate(input *hook.Input, session *enforce.SessionState) {
 	if state, err := dag.Load(session.SessionID); err == nil {
 		_, _, directive := dag.HandleTaskEvent(state, "TaskCreate", input.ToolInput)
 		if err := dag.Save(state); err != nil {
-				fmt.Fprintf(os.Stderr, "[TASK_DAG] Save error: %v\n", err)
-			}
+			fmt.Fprintf(os.Stderr, "[TASK_DAG] Save error: %v\n", err)
+		}
 		if directive != "" {
 			metadata["dag_directive"] = "active"
 			hook.ExitModifyTOONWithModule("TASK_CREATE", metadata, directive)
@@ -157,8 +157,8 @@ func handleTaskUpdate(input *hook.Input, session *enforce.SessionState) {
 	if state, err := dag.Load(session.SessionID); err == nil {
 		complete, needsAegis, directive := dag.HandleTaskEvent(state, "TaskUpdate", input.ToolInput)
 		if err := dag.Save(state); err != nil {
-				fmt.Fprintf(os.Stderr, "[TASK_DAG] Save error: %v\n", err)
-			}
+			fmt.Fprintf(os.Stderr, "[TASK_DAG] Save error: %v\n", err)
+		}
 		if complete && needsAegis {
 			hook.ExitModifyTOON("TASK_UPDATE_DAG_COMPLETE", map[string]string{
 				"dag_status": "complete",

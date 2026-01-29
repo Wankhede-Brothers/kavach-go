@@ -339,14 +339,14 @@ func containsString(slice []string, s string) bool {
 func extractAgents(prompt string) []string {
 	agents := []string{}
 	agentKeywords := map[string]string{
-		"backend":    "backend-engineer",
-		"frontend":   "frontend-engineer",
-		"database":   "database-engineer",
-		"devops":     "devops-engineer",
-		"security":   "security-engineer",
-		"test":       "qa-lead",
-		"explore":    "Explore",
-		"plan":       "Plan",
+		"backend":  "backend-engineer",
+		"frontend": "frontend-engineer",
+		"database": "database-engineer",
+		"devops":   "devops-engineer",
+		"security": "security-engineer",
+		"test":     "qa-lead",
+		"explore":  "Explore",
+		"plan":     "Plan",
 	}
 	for keyword, agent := range agentKeywords {
 		if strings.Contains(prompt, keyword) {

@@ -6,18 +6,25 @@ package session
 import (
 	"fmt"
 	"os"
-	"syscall"
 
+	"github.com/claude/shared/lock"
 	"github.com/claude/shared/pkg/util"
 )
 
 // Save persists session state to TOON file with file locking.
-// Uses flock to prevent concurrent hook processes from corrupting state.
+// Uses cross-platform LockManager to prevent concurrent hook processes from corrupting state.
 func (s *SessionState) Save() error {
 	statePath := StatePath()
 	if err := util.EnsureParentDir(statePath); err != nil {
 		return err
 	}
+
+	// Acquire cross-platform file lock
+	lm := lock.GetLockManager()
+	if err := lm.Acquire(statePath); err != nil {
+		return fmt.Errorf("lock: %w", err)
+	}
+	defer lm.Release(statePath)
 
 	// Atomic write: write to temp file, then rename
 	tmpPath := statePath + ".tmp"
@@ -26,21 +33,12 @@ func (s *SessionState) Save() error {
 		return err
 	}
 
-	// Acquire exclusive lock on temp file
-	if err := syscall.Flock(int(f.Fd()), syscall.LOCK_EX); err != nil {
-		f.Close()
-		os.Remove(tmpPath)
-		return fmt.Errorf("flock: %w", err)
-	}
-
 	writeHeader(f)
 	writeSessionBlock(f, s)
 	writeStateBlock(f, s)
 	writeCompactBlock(f, s)
 	writeTaskBlock(f, s)
 
-	// Release lock and close before rename
-	syscall.Flock(int(f.Fd()), syscall.LOCK_UN)
 	f.Close()
 
 	// Atomic rename

@@ -181,4 +181,3 @@ func extractTriggers(content string) []string {
 }
 
 // splitLines removed: replaced by strings.Split(s, "\n") at call sites
-

@@ -14,17 +14,17 @@ import (
 
 // GatesConfig holds all gate configurations from config.json
 type GatesConfig struct {
-	Schema      string       `json:"$schema"`
-	Description string       `json:"description"`
-	Updated     string       `json:"updated"`
-	Read        ReadConfig   `json:"read"`
-	Bash        BashConfig   `json:"bash"`
-	Write       WriteConfig  `json:"write"`
+	Schema      string         `json:"$schema"`
+	Description string         `json:"description"`
+	Updated     string         `json:"updated"`
+	Read        ReadConfig     `json:"read"`
+	Bash        BashConfig     `json:"bash"`
+	Write       WriteConfig    `json:"write"`
 	Enforcer    EnforcerConfig `json:"enforcer"`
-	Intent      IntentConfig `json:"intent"`
+	Intent      IntentConfig   `json:"intent"`
 	Research    ResearchConfig `json:"research"`
-	Context     ContextConfig `json:"context"`
-	Quality     QualityConfig `json:"quality"`
+	Context     ContextConfig  `json:"context"`
+	Quality     QualityConfig  `json:"quality"`
 }
 
 // ReadConfig defines file read gate rules
