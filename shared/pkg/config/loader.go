@@ -56,19 +56,16 @@ func init() {
 // P1 FIX #5: TTL-based cache - reloads after CacheTTL expires.
 // P1 FIX: Updates lastAccess on hit, evicts LRU when cache full.
 func LoadPatterns(filename string) map[string][]string {
-	cacheMu.RLock()
+	cacheMu.Lock()
 	if cached, ok := configCache[filename]; ok {
-		// P1 FIX #5: Check if cache is still valid (within TTL)
 		if time.Since(cached.timestamp) < CacheTTL {
-			cacheMu.RUnlock()
-			// P1 FIX: Update last access time (requires write lock)
-			cacheMu.Lock()
 			cached.lastAccess = time.Now()
+			data := cached.data
 			cacheMu.Unlock()
-			return cached.data
+			return data
 		}
 	}
-	cacheMu.RUnlock()
+	cacheMu.Unlock()
 
 	result := make(map[string][]string)
 	paths := []string{
@@ -229,13 +226,7 @@ func ClearCache() {
 	cacheMu.Unlock()
 }
 
-// InvalidateFile invalidates cache for a specific file.
-// P1 FIX #5: Allows targeted cache invalidation.
-func InvalidateFile(filename string) {
-	cacheMu.Lock()
-	delete(configCache, filename)
-	cacheMu.Unlock()
-}
+// InvalidateFile removed: zero callers (dead code audit 2026-01-29)
 
 // GetRouterMappings returns router configuration from router-mappings.toon
 func GetRouterMappings() map[string][]string {

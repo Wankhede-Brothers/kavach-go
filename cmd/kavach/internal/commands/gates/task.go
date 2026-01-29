@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/claude/shared/pkg/dag"
 	"github.com/claude/shared/pkg/enforce"
 	"github.com/claude/shared/pkg/hook"
 	"github.com/spf13/cobra"
@@ -107,6 +108,18 @@ func handleTaskCreate(input *hook.Input, session *enforce.SessionState) {
 	session.TasksCreated++
 	session.Save()
 
+	// DAG Scheduler: map Claude task ID to DAG node
+	if state, err := dag.Load(session.SessionID); err == nil {
+		_, _, directive := dag.HandleTaskEvent(state, "TaskCreate", input.ToolInput)
+		if err := dag.Save(state); err != nil {
+				fmt.Fprintf(os.Stderr, "[TASK_DAG] Save error: %v\n", err)
+			}
+		if directive != "" {
+			metadata["dag_directive"] = "active"
+			hook.ExitModifyTOONWithModule("TASK_CREATE", metadata, directive)
+		}
+	}
+
 	hook.ExitModifyTOON("TASK_CREATE", metadata)
 }
 
@@ -120,7 +133,7 @@ func handleTaskUpdate(input *hook.Input, session *enforce.SessionState) {
 	status := input.GetString("status")
 
 	// Validate status transitions
-	validStatuses := []string{"pending", "in_progress", "completed", ""}
+	validStatuses := []string{"pending", "in_progress", "completed", "deleted", ""}
 	if status != "" && !contains(validStatuses, status) {
 		hook.ExitBlockTOON("TASK_GATE", "TaskUpdate:invalid_status:"+status)
 	}
@@ -135,6 +148,25 @@ func handleTaskUpdate(input *hook.Input, session *enforce.SessionState) {
 	if status == "completed" {
 		session.TasksCompleted++
 		session.Save()
+	}
+
+	// DAG Scheduler: advance state on task updates
+	if state, err := dag.Load(session.SessionID); err == nil {
+		complete, needsAegis, directive := dag.HandleTaskEvent(state, "TaskUpdate", input.ToolInput)
+		if err := dag.Save(state); err != nil {
+				fmt.Fprintf(os.Stderr, "[TASK_DAG] Save error: %v\n", err)
+			}
+		if complete && needsAegis {
+			hook.ExitModifyTOON("TASK_UPDATE_DAG_COMPLETE", map[string]string{
+				"dag_status": "complete",
+				"action":     "Run kavach orch aegis for final verification",
+			})
+		}
+		if directive != "" {
+			hook.ExitModifyTOONWithModule("TASK_UPDATE_DAG_ADVANCE", map[string]string{
+				"dag_status": "advancing",
+			}, directive)
+		}
 	}
 
 	hook.ExitSilent()
@@ -233,7 +265,6 @@ func contains(slice []string, item string) bool {
 // generateTaskID creates a Beads-style hash ID (kv-a1b2c3)
 // Reference: github.com/steveyegge/beads - hash-based IDs prevent merge conflicts
 func generateTaskID(subject string) string {
-	// Import crypto/sha256 at top of file
 	data := subject + time.Now().Format(time.RFC3339Nano)
 	// Simple hash using time + subject
 	hash := 0

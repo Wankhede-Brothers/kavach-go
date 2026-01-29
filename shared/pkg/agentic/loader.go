@@ -5,6 +5,7 @@ package agentic
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/claude/shared/pkg/dsa"
@@ -151,36 +152,33 @@ func (dl *DynamicLoader) LoadedSkills() []string {
 
 // Helper: extract description from markdown content
 func extractDescription(content string) string {
-	// Find description in frontmatter
-	lines := splitLines(content)
-	for _, line := range lines {
-		if len(line) > 12 && line[:12] == "description:" {
-			return line[12:]
+	for _, line := range strings.Split(content, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "description:") {
+			return strings.TrimSpace(strings.TrimPrefix(trimmed, "description:"))
 		}
 	}
 	return ""
 }
 
-// Helper: extract triggers from skill content
+// Helper: extract triggers from skill content.
+// Looks for "triggers:" line followed by comma-separated values.
 func extractTriggers(content string) []string {
-	// Find triggers: [...] in skill definition
 	var triggers []string
-	// Simplified extraction - look for triggers: [...]
+	for _, line := range strings.Split(content, "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "triggers:") {
+			raw := strings.TrimPrefix(trimmed, "triggers:")
+			for _, t := range strings.Split(raw, ",") {
+				if t = strings.TrimSpace(t); t != "" {
+					triggers = append(triggers, t)
+				}
+			}
+			break
+		}
+	}
 	return triggers
 }
 
-// Helper: split lines
-func splitLines(s string) []string {
-	var lines []string
-	start := 0
-	for i := 0; i < len(s); i++ {
-		if s[i] == '\n' {
-			lines = append(lines, s[start:i])
-			start = i + 1
-		}
-	}
-	if start < len(s) {
-		lines = append(lines, s[start:])
-	}
-	return lines
-}
+// splitLines removed: replaced by strings.Split(s, "\n") at call sites
+

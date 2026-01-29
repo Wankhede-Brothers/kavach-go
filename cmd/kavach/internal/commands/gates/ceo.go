@@ -4,10 +4,14 @@
 package gates
 
 import (
+	"fmt"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/claude/shared/pkg/config"
+	"github.com/claude/shared/pkg/dag"
+	"github.com/claude/shared/pkg/enforce"
 	"github.com/claude/shared/pkg/hook"
 	"github.com/spf13/cobra"
 )
@@ -75,6 +79,21 @@ func runCEOGate(cmd *cobra.Command, args []string) {
 		orchDirective["IF_FAIL"] = "Re-delegate with specific feedback"
 		orchDirective["IF_PASS"] = "Run kavach orch aegis for final verification"
 
+		// DAG Scheduler: If breakdown has >1 step, build parallel dispatch
+		breakdown := extractBreakdown(prompt)
+		if len(breakdown) > 1 {
+			session := enforce.GetOrCreateSession()
+			nodes := dag.Decompose(breakdown, []string{subagentType})
+			state, err := dag.Schedule(session.SessionID, prompt, nodes)
+			if err == nil {
+				if err := dag.Save(state); err != nil {
+					fmt.Fprintf(os.Stderr, "[CEO_DAG] Save error: %v\n", err)
+				}
+				directive := dag.BuildDirective(state)
+				hook.ExitModifyTOONWithModule("CEO_DAG_DISPATCH", orchDirective, directive)
+			}
+		}
+
 		hook.ExitModifyTOON("CEO_ORCHESTRATION", orchDirective)
 	}
 
@@ -97,6 +116,30 @@ func detectSkillFromConfig(prompt string) string {
 	}
 
 	return ""
+}
+
+// extractBreakdown splits a multi-step prompt into individual steps.
+// Looks for numbered lists (1. 2. 3.), bullet lists (- ), or (• ).
+func extractBreakdown(prompt string) []string {
+	lines := strings.Split(prompt, "\n")
+	var steps []string
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" {
+			continue
+		}
+		// Strip leading digits + separator ("1. ", "10) ", "2. ")
+		i := 0
+		for i < len(trimmed) && trimmed[i] >= '0' && trimmed[i] <= '9' {
+			i++
+		}
+		if i > 0 && i < len(trimmed) && (trimmed[i] == '.' || trimmed[i] == ')') {
+			steps = append(steps, strings.TrimSpace(trimmed[i+1:]))
+		} else if strings.HasPrefix(trimmed, "- ") {
+			steps = append(steps, strings.TrimSpace(trimmed[2:]))
+		}
+	}
+	return steps
 }
 
 // matchesKeywords checks if text contains any keyword (word boundary)

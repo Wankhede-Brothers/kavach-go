@@ -202,55 +202,7 @@ func TestRegisterSkillTrigger(t *testing.T) {
 	}
 }
 
-func TestRoute_IntentMapping(t *testing.T) { t.Skip("Requires config files") }
-
-// _TestRoute_IntentMapping - skipped, requires config
-func xTestRoute_IntentMapping(t *testing.T) {
-	router := NewSkillFirstRouter(nil)
-
-	tests := []struct {
-		intent    string
-		wantSkill string
-	}{
-		{"frontend development", "frontend"},
-		{"backend service", "backend"}, // Avoid 'api' which matches api-design
-		{"database query", "sql"},
-		{"cloud infrastructure", "cloud-infrastructure-mastery"},
-		{"terraform config", "cloud-infrastructure-mastery"},
-		{"security audit", "security"},
-		{"testing strategy", "testing"},
-	}
-
-	for _, tt := range tests {
-		decision := router.Route(tt.intent, nil)
-		if !decision.UseSkill {
-			t.Errorf("Route(%q) should use skill", tt.intent)
-		}
-		if decision.SkillName != tt.wantSkill {
-			t.Errorf("Route(%q).SkillName = %v, want %v", tt.intent, decision.SkillName, tt.wantSkill)
-		}
-	}
-}
-
-func TestRoute_ComplexTask(t *testing.T) { t.Skip("Requires config files") }
-func xTestRoute_ComplexTask(t *testing.T) {
-	router := NewSkillFirstRouter(nil)
-
-	// Tasks that have complexity indicators but don't match skill domains
-	complexTasks := []string{
-		"implement full authentication system",
-		"build the entire payment flow",
-		"create new notification module",
-		"refactor the user management layer",
-	}
-
-	for _, task := range complexTasks {
-		decision := router.Route(task, nil)
-		if !decision.RequiresCEO {
-			t.Errorf("Route(%q) should require CEO orchestration", task)
-		}
-	}
-}
+// TestRoute_IntentMapping and TestRoute_ComplexTask removed: permanently skipped stubs (dead code audit 2026-01-29)
 
 func TestRoute_DefaultAgent(t *testing.T) {
 	router := NewSkillFirstRouter(nil)
@@ -266,71 +218,7 @@ func TestRoute_DefaultAgent(t *testing.T) {
 	}
 }
 
-func TestGetSkillForAgent(t *testing.T) { t.Skip("Requires config files") }
-func xTestGetSkillForAgent(t *testing.T) {
-	router := NewSkillFirstRouter(nil)
-	router.RegisterAgentSkills("custom-agent", []string{"custom-skill", "backup-skill"})
-
-	// Custom registered skills
-	skill := router.GetSkillForAgent("custom-agent")
-	if skill != "custom-skill" {
-		t.Errorf("GetSkillForAgent('custom-agent') = %v, want 'custom-skill'", skill)
-	}
-
-	// Default mappings
-	tests := []struct {
-		agent string
-		want  string
-	}{
-		{"backend-engineer", "backend"},
-		{"frontend-engineer", "frontend"},
-		{"database-engineer", "sql"},
-		{"devops-engineer", "cloud-infrastructure-mastery"},
-		{"security-engineer", "security"},
-		{"qa-lead", "testing"},
-	}
-
-	for _, tt := range tests {
-		got := router.GetSkillForAgent(tt.agent)
-		if got != tt.want {
-			t.Errorf("GetSkillForAgent(%q) = %v, want %v", tt.agent, got, tt.want)
-		}
-	}
-}
-
-func TestShouldPreferSkill(t *testing.T) { t.Skip("Requires config files") }
-func xTestShouldPreferSkill(t *testing.T) {
-	router := NewSkillFirstRouter(nil)
-
-	skillPreferred := []string{
-		"research patterns",
-		"validate configuration",
-		"check syntax",
-		"lint code",
-		"format files",
-		"test coverage",
-		"query database",
-	}
-
-	for _, task := range skillPreferred {
-		if !router.ShouldPreferSkill(task) {
-			t.Errorf("ShouldPreferSkill(%q) = false, want true", task)
-		}
-	}
-
-	// Non-skill tasks
-	nonSkillTasks := []string{
-		"implement feature",
-		"build system",
-		"deploy application",
-	}
-
-	for _, task := range nonSkillTasks {
-		if router.ShouldPreferSkill(task) {
-			t.Errorf("ShouldPreferSkill(%q) = true, want false", task)
-		}
-	}
-}
+// TestGetSkillForAgent and TestShouldPreferSkill removed: permanently skipped stubs (dead code audit 2026-01-29)
 
 // =============================================================================
 // Benchmark Tests

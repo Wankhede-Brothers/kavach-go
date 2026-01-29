@@ -86,10 +86,4 @@ func Marshal(doc *Document) string {
 	return sb.String()
 }
 
-// MarshalBlock converts a Block to a TOON string.
-func MarshalBlock(b *Block) string {
-	var sb strings.Builder
-	w := NewWriter(&sb)
-	w.WriteBlock(b)
-	return sb.String()
-}
+// MarshalBlock removed: zero callers (dead code audit 2026-01-29)
