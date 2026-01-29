@@ -55,6 +55,12 @@ func writeStateBlock(f *os.File, s *SessionState) {
 	fmt.Fprintf(f, "ceo: %s\n", boolStr(s.CEOInvoked))
 	fmt.Fprintf(f, "nlu: %s\n", boolStr(s.NLUParsed))
 	fmt.Fprintf(f, "aegis: %s\n", boolStr(s.AegisVerified))
+	fmt.Fprintf(f, "turn_count: %d\n", s.TurnCount)
+	fmt.Fprintf(f, "last_reinforce_turn: %d\n", s.LastReinforceTurn)
+	fmt.Fprintf(f, "reinforce_every_n: %d\n", s.ReinforceEveryN)
+	fmt.Fprintf(f, "tasks_created: %d\n", s.TasksCreated)
+	fmt.Fprintf(f, "tasks_completed: %d\n", s.TasksCompleted)
+	fmt.Fprintf(f, "session_id: %s\n", s.SessionID)
 	fmt.Fprintln(f)
 }
 

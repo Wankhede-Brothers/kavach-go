@@ -30,13 +30,25 @@ func runReadGate(cmd *cobra.Command, args []string) {
 
 	input := hook.MustReadHookInput()
 
-	if input.ToolName != "Read" {
+	// Support Read, Glob, and Grep (all hooked to this gate in settings.json)
+	var filePath string
+	switch input.ToolName {
+	case "Read":
+		filePath = input.GetString("file_path")
+	case "Glob":
+		filePath = input.GetString("path") // Glob uses "path" not "file_path"
+	case "Grep":
+		filePath = input.GetString("path")
+	default:
 		hook.ExitSilent()
 	}
 
-	filePath := input.GetString("file_path")
-	if filePath == "" {
+	// Glob/Grep path is optional (defaults to cwd), so only block Read with no path
+	if filePath == "" && input.ToolName == "Read" {
 		hook.ExitBlockTOON("READ", "no_file_path")
+	}
+	if filePath == "" {
+		hook.ExitSilent() // Glob/Grep with no path = cwd, always allowed
 	}
 
 	// Check blocked paths from gates/config.json (priority)

@@ -89,6 +89,18 @@ func parseField(state *SessionState, key, value string, inFiles *bool) {
 		state.CompactedAt = value
 	case "compact_count":
 		state.CompactCount, _ = strconv.Atoi(value)
+	case "turn_count":
+		state.TurnCount, _ = strconv.Atoi(value)
+	case "last_reinforce_turn":
+		state.LastReinforceTurn, _ = strconv.Atoi(value)
+	case "reinforce_every_n":
+		state.ReinforceEveryN, _ = strconv.Atoi(value)
+	case "tasks_created":
+		state.TasksCreated, _ = strconv.Atoi(value)
+	case "tasks_completed":
+		state.TasksCompleted, _ = strconv.Atoi(value)
+	case "session_id":
+		state.SessionID = value
 	case "task":
 		state.CurrentTask = value
 	case "task_status":

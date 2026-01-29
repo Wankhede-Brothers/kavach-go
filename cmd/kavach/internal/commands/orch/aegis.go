@@ -77,9 +77,8 @@ func runAegisCmd(cmd *cobra.Command, args []string) {
 		// Hook mode - read from stdin
 		input := hook.MustReadHookInput()
 
-		// Get completed tasks from tool result
-		toolResult := input.GetString("tool_result")
-		if toolResult == "" {
+		// PostToolUse provides ToolResponse (map), not a string field
+		if input.ToolResponse == nil || len(input.ToolResponse) == 0 {
 			hook.ExitSilent()
 			return
 		}

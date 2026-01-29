@@ -86,15 +86,12 @@ func handleTaskCreate(input *hook.Input, session *enforce.SessionState) {
 
 	// Check for headless mode issues
 	if issue := health.DetectHeadlessMode(); issue != nil {
-		// Don't block, just inject warning
 		metadata := map[string]string{
 			"task_list_id":   taskListID,
 			"created_date":   today,
 			"session_id":     session.SessionID,
 			"health_warning": issue.Description,
 		}
-		session.TasksCreated++
-		session.Save()
 		hook.ExitModifyTOON("TASK_CREATE", metadata)
 	}
 
@@ -104,9 +101,12 @@ func handleTaskCreate(input *hook.Input, session *enforce.SessionState) {
 		"session_id":   session.SessionID,
 	}
 
-	// Track task creation in session state
-	session.TasksCreated++
-	session.Save()
+	// Only increment on PostToolUse (settings.json fires this gate for both Pre and Post).
+	// At PreToolUse, HookEventName is "PreToolUse"; at PostToolUse it's "PostToolUse".
+	if input.HookEventName == "PostToolUse" {
+		session.TasksCreated++
+		session.Save()
+	}
 
 	// DAG Scheduler: map Claude task ID to DAG node
 	if state, err := dag.Load(session.SessionID); err == nil {

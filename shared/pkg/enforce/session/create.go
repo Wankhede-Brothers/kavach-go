@@ -14,11 +14,13 @@ import (
 // NewSessionState creates a new session with date injection.
 // Uses util.DetectProject() for proper project detection (index.toon, git, markers).
 func NewSessionState(workDir string) *SessionState {
+	id := generateSessionID(workDir)
 	return &SessionState{
-		ID:             generateSessionID(workDir),
+		ID:             id,
+		SessionID:      id, // Same as ID — used by DAG scheduler and task gate
 		Today:          time.Now().Format("2006-01-02"),
 		WorkDir:        workDir,
-		Project:        util.DetectProject(), // Use proper detection, not filepath.Base
+		Project:        util.DetectProject(),
 		TrainingCutoff: "2025-01",
 		FilesModified:  []string{},
 	}

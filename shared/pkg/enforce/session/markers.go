@@ -23,17 +23,8 @@ func (s *SessionState) MarkCEOInvoked() {
 	s.Save()
 }
 
-// MarkNLUParsed marks that NLU parsing was done.
-func (s *SessionState) MarkNLUParsed() {
-	s.NLUParsed = true
-	s.Save()
-}
-
-// MarkAegisVerified marks that Aegis verification passed.
-func (s *SessionState) MarkAegisVerified() {
-	s.AegisVerified = true
-	s.Save()
-}
+// Dead code audit: MarkNLUParsed and MarkAegisVerified were never called.
+// NLUParsed and AegisVerified fields are still persisted for future use.
 
 // MarkPostCompact marks that context was compacted.
 func (s *SessionState) MarkPostCompact() {
@@ -78,25 +69,8 @@ func (s *SessionState) MarkReinforcementDone() {
 	s.Save()
 }
 
-// SetCurrentTask sets a new task and resets task-scoped state.
-// P1 FIX: Research is now task-scoped, not session-scoped.
-func (s *SessionState) SetCurrentTask(task string) {
-	if s.CurrentTask != task && task != "" {
-		// New task detected - reset task-scoped flags
-		s.CurrentTask = task
-		s.ResearchDone = false // P1 FIX: Research resets per task
-		s.AegisVerified = false
-		s.TaskStatus = "in_progress"
-		s.Save()
-	}
-}
-
-// ResetTaskResearch resets research state for a new task.
-func (s *SessionState) ResetTaskResearch() {
-	s.ResearchDone = false
-	s.AegisVerified = false
-	s.Save()
-}
+// Dead code audit: SetCurrentTask and ResetTaskResearch were never called.
+// Task state is managed by task.go gate via TaskCreate/TaskUpdate hooks.
 
 // StoreIntent persists intent classification for the CEO gate to read.
 func (s *SessionState) StoreIntent(intentType, domain string, subAgents, skills []string) {

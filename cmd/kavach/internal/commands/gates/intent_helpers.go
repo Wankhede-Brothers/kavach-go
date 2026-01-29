@@ -35,42 +35,6 @@ func isStatusQuery(prompt string) bool {
 	return false
 }
 
-// isImplementationIntent returns true for intent types that require research first.
-// TABULA_RASA: ALL intents except pure greetings require research.
-func isImplementationIntent(intentType string) bool {
-	// ALL non-trivial intents require research - training weights are STALE
-	requiresResearch := []string{
-		"implement", "debug", "refactor", "optimize", "fix",
-		"audit", "docs", "unclassified", "research",
-	}
-	for _, t := range requiresResearch {
-		if intentType == t {
-			return true
-		}
-	}
-	return false
-}
-
-// containsTechnicalTerms checks if prompt contains terms that need current docs.
-// These terms indicate user needs FRESH information, not stale training weights.
-func containsTechnicalTerms(prompt string) bool {
-	terms := []string{
-		"version", "install", "config", "setup", "deploy",
-		"error", "fix", "issue", "bug", "fail",
-		"how to", "how do", "what is", "which",
-		"bun", "node", "npm", "yarn", "pnpm",
-		"docker", "kubernetes", "terraform", "cloudflare",
-		"react", "vue", "angular", "nextjs", "astro",
-		"rust", "go", "python", "java",
-		"api", "endpoint", "route", "handler",
-		"database", "postgres", "mysql", "redis",
-		"env", "environment", "variable",
-	}
-	lower := strings.ToLower(prompt)
-	for _, term := range terms {
-		if strings.Contains(lower, term) {
-			return true
-		}
-	}
-	return false
-}
+// Dead code removed: isImplementationIntent, containsTechnicalTerms
+// Both were defined but never called from any gate or hook.
+// Intent classification now handled entirely by classifyIntentFromConfig() in intent_nlu.go.
