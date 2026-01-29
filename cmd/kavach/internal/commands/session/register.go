@@ -10,5 +10,6 @@ func Register(sessionCmd *cobra.Command) {
 	sessionCmd.AddCommand(endCmd)
 	sessionCmd.AddCommand(compactCmd)
 	sessionCmd.AddCommand(resumeCmd)
-	sessionCmd.AddCommand(landCmd) // Beads-inspired "land the plane" protocol
+	sessionCmd.AddCommand(landCmd)           // Beads-inspired "land the plane" protocol
+	sessionCmd.AddCommand(sessionEndHookCmd) // SessionEnd lifecycle hook
 }

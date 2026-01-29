@@ -5,7 +5,10 @@
 package gates
 
 import (
+	"strings"
+
 	"github.com/claude/shared/pkg/agentic"
+	"github.com/claude/shared/pkg/config"
 	"github.com/claude/shared/pkg/enforce"
 	"github.com/claude/shared/pkg/hook"
 	"github.com/claude/shared/pkg/patterns"
@@ -139,7 +142,98 @@ func handleWrite(input *hook.Input, session *enforce.SessionState) {
 		}
 	}
 
+	// CODE GUARD: Check for premature code removal (Edit tool)
+	if input.ToolName == "Edit" {
+		oldString := input.GetString("old_string")
+		newString := input.GetString("new_string")
+
+		// Block removal of TODO/stub functions
+		if checkCodeRemoval(oldString, newString, filePath) {
+			// Already handled in checkCodeRemoval
+			return
+		}
+	}
+
+	// Check write blocked paths from config
+	if config.IsBlockedWritePath(filePath) {
+		hook.ExitBlockTOON("ENFORCER", "Write:blocked_path:"+filePath)
+	}
+
 	hook.ExitSilent()
+}
+
+// checkCodeRemoval detects and blocks premature code removal.
+// Returns true if blocked (already exited).
+func checkCodeRemoval(old, new, filePath string) bool {
+	// Skip if not code file
+	if !patterns.IsCodeFile(filePath) {
+		return false
+	}
+
+	// Check for function removal
+	oldHasFunc := containsFunctionDef(old)
+	newHasFunc := containsFunctionDef(new)
+
+	if oldHasFunc && !newHasFunc && len(new) < len(old)/2 {
+		// Significant code reduction with function removal
+		if containsStubMarkers(old) {
+			hook.ExitBlockTOON("CODE_GUARD",
+				"BLOCK:removing_unimplemented_function:file:"+filePath+
+					":REASON:Never remove TODO/stub functions. Implement them first or verify with user.")
+			return true
+		}
+	}
+
+	// Check for TODO removal without implementation
+	if containsStubMarkers(old) && !containsStubMarkers(new) {
+		if len(new) <= len(old) {
+			hook.ExitBlockTOON("CODE_GUARD",
+				"BLOCK:stub_removed_without_implementation:file:"+filePath+
+					":REASON:TODO/FIXME removed but code not expanded. Implement before removing.")
+			return true
+		}
+	}
+
+	// Check for complete deletion
+	if len(strings.TrimSpace(new)) == 0 && len(old) > 100 {
+		hook.ExitBlockTOON("CODE_GUARD",
+			"BLOCK:complete_deletion:file:"+filePath+
+				":REASON:Cannot delete significant code block. Verify intent first.")
+		return true
+	}
+
+	return false
+}
+
+// containsFunctionDef checks if content contains function definitions.
+func containsFunctionDef(content string) bool {
+	funcPatterns := []string{
+		"func ", "fn ", "def ", "function ", "pub fn ", "async fn ",
+		"const ", "class ", "impl ", "trait ",
+	}
+	for _, p := range funcPatterns {
+		if strings.Contains(content, p) {
+			return true
+		}
+	}
+	return false
+}
+
+// containsStubMarkers checks if content has TODO/stub markers.
+func containsStubMarkers(content string) bool {
+	markers := []string{
+		"TODO", "FIXME", "XXX", "HACK",
+		"not implemented", "placeholder", "stub",
+		"unimplemented!", "todo!",
+		"NotImplementedError", "pass\n",
+	}
+	contentLower := strings.ToLower(content)
+	for _, m := range markers {
+		if strings.Contains(contentLower, strings.ToLower(m)) {
+			return true
+		}
+	}
+	return false
 }
 
 func handleBash(input *hook.Input) {
@@ -147,6 +241,11 @@ func handleBash(input *hook.Input) {
 	if cmd == "" {
 		hook.ExitBlockTOON("ENFORCER", "Bash:empty_command")
 	}
+	// Check config.json blocked commands first
+	if config.IsBlockedCommand(cmd) {
+		hook.ExitBlockTOON("ENFORCER", "Bash:blocked_command")
+	}
+	// Fallback to patterns.toon
 	if patterns.IsBlocked(cmd) {
 		hook.ExitBlockTOON("ENFORCER", "Bash:blocked_command")
 	}
@@ -155,6 +254,14 @@ func handleBash(input *hook.Input) {
 
 func handleRead(input *hook.Input) {
 	path := input.GetString("file_path")
+	// Check config.json blocked paths first
+	if config.IsBlockedPath(path) {
+		hook.ExitBlockTOON("ENFORCER", "Read:blocked_path")
+	}
+	if config.IsBlockedExtension(path) {
+		hook.ExitBlockTOON("ENFORCER", "Read:blocked_extension")
+	}
+	// Fallback to patterns.toon
 	if patterns.IsSensitive(path) {
 		hook.ExitBlockTOON("ENFORCER", "Read:sensitive_file")
 	}

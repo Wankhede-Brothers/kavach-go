@@ -98,6 +98,7 @@ func ExitApproveTOON(gate string) {
 }
 
 // ExitBlockTOON outputs block with TOON context.
+// Uses hookSpecificOutput format (Claude Code 2026).
 func ExitBlockTOON(gate, reason string) {
 	ctx := TOONBlock("BLOCK", map[string]string{
 		"gate":   gate,
@@ -105,9 +106,12 @@ func ExitBlockTOON(gate, reason string) {
 		"date":   Today(),
 	})
 	Output(&types.HookResponse{
-		Decision:          "block",
-		Reason:            reason,
-		AdditionalContext: ctx,
+		HookSpecificOutput: &types.HookSpecificOutput{
+			HookEventName:            "PreToolUse",
+			PermissionDecision:       "deny",
+			PermissionDecisionReason: reason,
+			AdditionalContext:        ctx,
+		},
 	})
 	os.Exit(0)
 }
@@ -153,6 +157,45 @@ func ExitModifyTOONWithModule(gate string, kvs map[string]string, moduleContent 
 		ctx += "\n[MODULE:LAZY_LOADED]\n" + moduleContent
 	}
 	Modify(gate, ctx)
+	os.Exit(0)
+}
+
+// === SessionEnd / SubagentStart / SubagentStop output helpers ===
+
+// ExitSessionEnd outputs SessionEnd context and exits.
+func ExitSessionEnd(context string) {
+	Output(types.NewSessionEndContext(context))
+	os.Exit(0)
+}
+
+// ExitSessionEndTOON outputs SessionEnd with TOON context.
+func ExitSessionEndTOON(kvs map[string]string) {
+	kvs["date"] = Today()
+	ctx := TOONBlock("SESSION_END", kvs)
+	ExitSessionEnd(ctx)
+}
+
+// ExitSubagentStart outputs SubagentStart context and exits.
+func ExitSubagentStart(context string) {
+	Output(types.NewSubagentStartContext(context))
+	os.Exit(0)
+}
+
+// ExitSubagentStop outputs SubagentStop context and exits.
+func ExitSubagentStop(context string) {
+	Output(types.NewSubagentStopContext(context))
+	os.Exit(0)
+}
+
+// ExitPermissionAllow auto-approves a permission request.
+func ExitPermissionAllow(reason string) {
+	Output(types.NewPermissionAllow(reason))
+	os.Exit(0)
+}
+
+// ExitPermissionDeny auto-denies a permission request.
+func ExitPermissionDeny(reason string) {
+	Output(types.NewPermissionDeny(reason, false))
 	os.Exit(0)
 }
 

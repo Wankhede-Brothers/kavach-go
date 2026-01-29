@@ -71,13 +71,20 @@ agents:   List available agents with models
 skills:   List available skills
 
 [HOOKS_MAPPING]
-SessionStart:     session init
-UserPromptSubmit: intent --hook
-PreToolUse:       gates enforcer --hook
-PreToolUse:Task:  gates ceo --hook
-PreToolUse:Bash:  gates bash --hook
-PreToolUse:Read:  gates read --hook
-Stop:             session end
+SessionStart:        session init
+SessionEnd:          session end-hook
+UserPromptSubmit:    gates intent --hook
+PreToolUse:          gates enforcer --hook
+PreToolUse:Task:     gates ceo --hook
+PreToolUse:Bash:     gates bash --hook
+PreToolUse:Read:     gates read --hook
+PostToolUse:         memory sync --hook
+PostToolUseFailure:  gates failure --hook
+SubagentStart:       gates subagent --hook
+SubagentStop:        gates subagent --hook
+PermissionRequest:   gates read --hook
+Stop:                session end
+PreCompact:          session compact
 
 [EXAMPLES]
 kavach status                              # System health

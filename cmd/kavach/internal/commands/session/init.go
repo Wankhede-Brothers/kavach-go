@@ -84,6 +84,9 @@ func runInitCmd(cmd *cobra.Command, args []string) {
 	fmt.Println("[DACE] mode: lazy_load,skill_first,on_demand")
 
 	session.MarkMemoryQueried()
+
+	// Write env vars to CLAUDE_ENV_FILE if set
+	writeClaudeEnvFile(session)
 }
 
 // runPostCompactInit handles session init after a compact event.
